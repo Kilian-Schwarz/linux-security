@@ -19,17 +19,25 @@ The script performs the following operations:
 12. **Set a secure banner for Postfix**: Configures Postfix with a secure SMTP banner.
 13. **Enable auditing tools and services**: Installs and configures auditd, acct, and sysstat for system auditing.
 14. **Apply other security configurations**: Applies various additional security settings to harden the system.
-15. **Set GRUB bootloader password**: Configures a password for GRUB bootloader to enhance boot security.
+15. **Set GRUB bootloader password**: Configures a password for GRUB bootloader to enhance boot security. **Note: This feature is currently not functioning.**
 
 ## Prerequisites
 - This script must be run as root.
 - Ensure `security.conf` file is present in the same directory as the script and correctly configured.
 
-## Usage
-1. **Prepare the configuration file**: Edit the `security.conf` file to include all necessary configuration details such as SSH keys, admin user details, and other security settings.
-2. **Run the script**: Execute the script with root privileges.
+## Installation and Usage
+
+1. **Clone the Repository**:
    ```bash
-   sudo ./security_script.sh
+   git clone https://github.com/Kilian-Schwarz/linux-security.git
+   cd linux-security
+   ```
+
+2. **Prepare the Configuration File**: Edit the `security.conf` file to include all necessary configuration details such as SSH keys, admin user details, and other security settings.
+
+3. **Run the Script**: Execute the script with root privileges.
+   ```bash
+   sudo ./security.sh
    ```
 
 ## Configuration File (`security.conf`)
@@ -46,9 +54,5 @@ The configuration file should include the following variables:
 - Always review the script and configuration file to ensure it meets your security policies and requirements.
 - After running the script, it is recommended to reboot the server to apply all changes.
 
-## Support
-For any issues or questions, please contact [your_contact_email@example.com].
-
----
-
-Feel free to customize the README file further to better fit your needs.
+## Known Issues
+- **Set GRUB bootloader password (Function 15)**: This feature is currently not functioning. We are working on resolving the issue.

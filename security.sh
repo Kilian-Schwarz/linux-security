@@ -1,23 +1,75 @@
 #!/bin/bash
 echo "Linux Security Script - by Kilian Schwarz  ---  v0.1"
 
+
+# Laden der Konfigurationsdatei
+source ./security.conf
+
 # User confirmation prompt
 echo "This script will perform the following operations:"
-echo "1. Update package lists and install necessary packages."
-echo "2. Configure UFW firewall."
-echo "3. Create and configure a new admin user."
-echo "4. Set up password security."
-echo "5. Insert SSH keys."
-echo "6. Configure SSH security settings."
-echo "7. Configure Fail2Ban for dynamic IP blocking."
-echo "8. Activate ClamAV antivirus."
-echo "9. Activate AIDE for file integrity monitoring."
-echo "10. Configure rkhunter for rootkit detection."
-echo "11. Install and configure an autoupdater."
-echo "12. Set a secure banner for Postfix."
-echo "13. Enable auditing tools and services."
-echo "14. Apply other security configurations."
-echo "15. Set GRUB bootloader password."
+
+# Zähle die aktivierten Module und zeige die entsprechenden Meldungen an
+counter=1
+if [ "$ENABLE_UFW" = "yes" ]; then
+    echo "$counter. Configure UFW firewall."
+    ((counter++))
+fi
+if [ "$ENABLE_ADMINUSER" = "yes" ]; then
+    echo "$counter. Create and configure a new admin user."
+    ((counter++))
+fi
+if [ "$ENABLE_PASSWORDSECURITY" = "yes" ]; then
+    echo "$counter. Set up password security."
+    ((counter++))
+fi
+if [ "$ENABLE_SSHKEYS" = "yes" ]; then
+    echo "$counter. Insert SSH keys."
+    ((counter++))
+fi
+if [ "$ENABLE_SSHCONFIG" = "yes" ]; then
+    echo "$counter. Configure SSH security settings."
+    ((counter++))
+fi
+if [ "$ENABLE_FAIL2BAN" = "yes" ]; then
+    echo "$counter. Configure Fail2Ban for dynamic IP blocking."
+    ((counter++))
+fi
+if [ "$ENABLE_CLAMAV" = "yes" ]; then
+    echo "$counter. Activate ClamAV antivirus."
+    ((counter++))
+fi
+if [ "$ENABLE_AIDE" = "yes" ]; then
+    echo "$counter. Activate AIDE for file integrity monitoring."
+    ((counter++))
+fi
+if [ "$ENABLE_RKHUNTER" = "yes" ]; then
+    echo "$counter. Configure rkhunter for rootkit detection."
+    ((counter++))
+fi
+if [ "$ENABLE_AUTOUPDATE" = "yes" ]; then
+    echo "$counter. Install and configure an autoupdater."
+    ((counter++))
+fi
+if [ "$ENABLE_POSTFIX" = "yes" ]; then
+    echo "$counter. Set a secure banner for Postfix."
+    ((counter++))
+fi
+if [ "$ENABLE_AUDIT" = "yes" ]; then
+    echo "$counter. Enable auditing tools and services."
+    ((counter++))
+fi
+if [ "$ENABLE_OTHERSECURE" = "yes" ]; then
+    echo "$counter. Apply other security configurations."
+    ((counter++))
+fi
+if [ "$ENABLE_GRUB" = "yes" ]; then
+    echo "$counter. Set GRUB bootloader password."
+    ((counter++))
+fi
+if [ "$ENABLE_BANNER" = "yes" ]; then
+    echo "$counter. Configure login banner."
+    ((counter++))
+fi
 echo "Please ensure that all values in the security.conf file are correct."
 
 read -p "Are you sure you want to proceed with these changes? (yes/no): " confirm
@@ -44,9 +96,6 @@ if [ ! -f ./security.conf ]; then
     echo "Die Konfigurationsdatei security.conf wurde nicht gefunden."
     exit 1
 fi
-
-# Laden der Konfigurationsdatei
-source ./security.conf
 
 # Überprüfen, ob notwendige Variablen in der Konfigurationsdatei gesetzt sind
 if [ -z "$SECURITY_UFWSSH_IPS" ] || [ -z "$SECURITY_SSH_PORT" ] || [ -z "$SECURITY_USERNAME_ADMINUSER" ] || [ -z "$SECURITY_SSH_SSH_ADMINUSER_KEYS" ] || [ -z "$SECURITY_SSH_ADMIN_KEYS" ] || [ -z "$SECURITY_TIMEZONE" ]; then
@@ -463,7 +512,7 @@ config_ufw() {
     ufw default allow outgoing
 
     for ip in "${UFWSSH_IPS[@]}"; do
-        ufw allow from $ip to any port $SSH_PORT
+        ufw allow from $ip to any port $SSH_PORT proto tcp
     done
     
     # Anwenden der zusätzlichen UFW-Regeln
@@ -473,6 +522,160 @@ config_ufw() {
 }
 
 
+# Function to configure the login banner
+config_banner() {
+    # Create the custom ASCII art banner script
+    cat << 'EOF' > /etc/profile.d/mymotd.sh
+#!/bin/bash
+YELLOW=$(tput setaf 3)
+RESET=$(tput sgr0)
+BOLD=$(tput bold)
+
+# Function to print a formatted line
+print_line() {
+    printf " %-45s : %-50s \n" "$1" "$2"
+}
+
+# Function to get the last 5 logged in users
+get_last_logins() {
+    last -n 5 -a | head -n 5 | awk '{$2=$3=""; print $0}'
+}
+
+echo "--------------------------------------------------------------"
+print_line "${BOLD}${YELLOW}Hostname (FQDN)${RESET}" "$(hostname -f)"
+print_line "${BOLD}${YELLOW}Date and Time${RESET}" "$(date)"
+print_line "${BOLD}${YELLOW}OS${RESET}" "$(lsb_release -d | awk -F'\t' '{print $2}')"
+print_line "${BOLD}${YELLOW}Kernel${RESET}" "$(uname -r)"
+print_line "${BOLD}${YELLOW}Uptime${RESET}" "$(uptime -p | sed 's/up //')"
+print_line "${BOLD}${YELLOW}Packages${RESET}" "$(dpkg -l | wc -l)"
+print_line "${BOLD}${YELLOW}Shell${RESET}" "$SHELL"
+print_line "${BOLD}${YELLOW}Terminal${RESET}" "$(tty)"
+print_line "${BOLD}${YELLOW}Last Boot${RESET}" "$(who -b | awk '{print $3, $4}')"
+echo "--------------------------------------------------------------"
+print_line "${BOLD}${YELLOW}CPU${RESET}" "$(grep -m 1 'model name' /proc/cpuinfo | cut -d ':' -f 2 | xargs)"
+print_line "${BOLD}${YELLOW}GPU${RESET}" "$(lspci | grep -i 'vga' | cut -d ':' -f 3 | xargs)"
+print_line "${BOLD}${YELLOW}Memory${RESET}" "$(free -h | grep Mem | awk '{print $3 "/" $2}')"
+print_line "${BOLD}${YELLOW}Disk (/)${RESET}" "$(df -h / | awk 'NR==2 {print $3 "/" $2 " (" $5 ")"}')"
+print_line "${BOLD}${YELLOW}Swap${RESET}" "$(free -h | grep Swap | awk '{print $3 "/" $2}')"
+print_line "${BOLD}${YELLOW}Load Average (1, 5, 15 min)${RESET}" "$(uptime | awk -F'load average:' '{print $2}' | xargs)"
+echo "--------------------------------------------------------------"
+print_line "${BOLD}${YELLOW}Processes${RESET}" "$(ps ax | wc -l | tr -d ' ')"
+print_line "${BOLD}${YELLOW}Logged-in Users${RESET}" "$(who | awk '{print $1}' | sort | uniq | xargs)"
+print_line "${BOLD}${YELLOW}IP Addresses${RESET}" "$(hostname -I | xargs)"
+if [ -f /usr/lib/update-notifier/apt-check ]; then
+    print_line "${BOLD}${YELLOW}Updates${RESET}" "$(/usr/lib/update-notifier/apt-check --human-readable | head -1)"
+else
+    print_line "${BOLD}${YELLOW}Updates${RESET}" "No update notifier found"
+fi
+print_line "${BOLD}${YELLOW}Restart Required${RESET}" "$(if [ -f /var/run/reboot-required ]; then echo 'Yes'; else echo 'No'; fi)"
+echo "--------------------------------------------------------------"
+echo " ${BOLD}${YELLOW}Last 5 Login Activities${RESET}"
+get_last_logins | while read -r line; do echo " $line"; done
+echo "--------------------------------------------------------------"
+EOF
+
+    chmod +x /etc/profile.d/mymotd.sh
+}
+config_banner
+
+
+#-------------------------------------------------------------------------------------
+# ------------------------------ Paketinstallation -----------------------------------
+#-------------------------------------------------------------------------------------
+
+execute_with_status "Updating package lists" sudo apt-get update -y
+
+# Definiere Paketgruppen für jedes Modul
+UFW_PACKAGES=(ufw)
+ADMINUSER_PACKAGES=()
+PASSWORDSECURITY_PACKAGES=(libpam-passwdqc)
+SSHKEYS_PACKAGES=()
+SSHCONFIG_PACKAGES=()
+FAIL2BAN_PACKAGES=(fail2ban)
+CLAMAV_PACKAGES=(clamav clamav-daemon)
+AIDE_PACKAGES=(aide)
+RKHUNTER_PACKAGES=(rkhunter)
+AUTOUPDATE_PACKAGES=(cron)
+POSTFIX_PACKAGES=(postfix)
+AUDIT_PACKAGES=(auditd sysstat acct)
+OTHERSECURE_PACKAGES=(debsums apt-show-versions build-essential libpcap-dev libpcre3-dev libdumbnet-dev bison flex zlib1g-dev liblzma-dev openssl libssl-dev cmake libhwloc-dev pkg-config luajit libluajit-5.1-dev libpcap-dev libdumbnet-dev libunwind-dev liblzma-dev zlib1g-dev libssl-dev libnghttp2-dev)
+GRUB_PACKAGES=()
+BANNER_PACKAGES=()
+
+# Funktion zur Installation der Pakete einer Paketgruppe
+install_packages() {
+    local packages=("$@")
+    for package in "${packages[@]}"; do
+        package_installation() {
+            export DEBIAN_FRONTEND=noninteractive
+            echo "postfix postfix/main_mailer_type select Internet Site" | sudo debconf-set-selections
+            echo "postfix postfix/mailname string your.domain.com" | sudo debconf-set-selections
+            sudo apt-get install -y $package
+        }
+        execute_with_status "Installing $package" package_installation
+    done
+}
+
+# Installiere Pakete basierend auf den aktivierten Modulen
+if [ "$ENABLE_UFW" = "yes" ]; then
+    install_packages "${UFW_PACKAGES[@]}"
+fi
+
+if [ "$ENABLE_ADMINUSER" = "yes" ]; then
+    install_packages "${ADMINUSER_PACKAGES[@]}"
+fi
+
+if [ "$ENABLE_PASSWORDSECURITY" = "yes" ]; then
+    install_packages "${PASSWORDSECURITY_PACKAGES[@]}"
+fi
+
+if [ "$ENABLE_SSHKEYS" = "yes" ]; then
+    install_packages "${SSHKEYS_PACKAGES[@]}"
+fi
+
+if [ "$ENABLE_SSHCONFIG" = "yes" ]; then
+    install_packages "${SSHCONFIG_PACKAGES[@]}"
+fi
+
+if [ "$ENABLE_FAIL2BAN" = "yes" ]; then
+    install_packages "${FAIL2BAN_PACKAGES[@]}"
+fi
+
+if [ "$ENABLE_CLAMAV" = "yes" ]; then
+    install_packages "${CLAMAV_PACKAGES[@]}"
+fi
+
+if [ "$ENABLE_AIDE" = "yes" ]; then
+    install_packages "${AIDE_PACKAGES[@]}"
+fi
+
+if [ "$ENABLE_RKHUNTER" = "yes" ]; then
+    install_packages "${RKHUNTER_PACKAGES[@]}"
+fi
+
+if [ "$ENABLE_AUTOUPDATE" = "yes" ]; then
+    install_packages "${AUTOUPDATE_PACKAGES[@]}"
+fi
+
+if [ "$ENABLE_POSTFIX" = "yes" ]; then
+    install_packages "${POSTFIX_PACKAGES[@]}"
+fi
+
+if [ "$ENABLE_AUDIT" = "yes" ]; then
+    install_packages "${AUDIT_PACKAGES[@]}"
+fi
+
+if [ "$ENABLE_OTHERSECURE" = "yes" ]; then
+    install_packages "${OTHERSECURE_PACKAGES[@]}"
+fi
+
+if [ "$ENABLE_GRUB" = "yes" ]; then
+    install_packages "${GRUB_PACKAGES[@]}"
+fi
+
+if [ "$ENABLE_BANNER" = "yes" ]; then
+    install_packages "${BANNER_PACKAGES[@]}"
+fi
 
 
 
@@ -480,21 +683,20 @@ config_ufw() {
 # --------------------------------------- MAIN ---------------------------------------
 #-------------------------------------------------------------------------------------
 
-execute_with_status "Updating package lists" sudo apt-get update -y
 
-# Install packages (example packages)
-for package in "${PACKAGES[@]}"; do
-
-    package_installation() {
-        export DEBIAN_FRONTEND=noninteractive
-        echo "postfix postfix/main_mailer_type select Internet Site" | sudo debconf-set-selections
-        echo "postfix postfix/mailname string your.domain.com" | sudo debconf-set-selections
-        sudo apt-get install -y $package
-    }
-    
-    execute_with_status "Installing $package" package_installation
-
-done
+## Install packages (example packages)
+#for package in "${PACKAGES[@]}"; do
+#
+#    package_installation() {
+#        export DEBIAN_FRONTEND=noninteractive
+#        echo "postfix postfix/main_mailer_type select Internet Site" | sudo debconf-set-selections
+#        echo "postfix postfix/mailname string your.domain.com" | sudo debconf-set-selections
+#        sudo apt-get install -y $package
+#    }
+#    
+#    execute_with_status "Installing $package" package_installation
+#
+#done
 
 if [ "$ENABLE_UFW" = "yes" ]; then
     execute_with_status "Configure UFW" config_ufw
@@ -552,8 +754,22 @@ if [ "$ENABLE_GRUB" = "yes" ]; then
     execute_with_status "Set GRUB Password" set_grub_password
 fi
 
-echo "rkhunter Checkup (may take a few minutes)"
-sudo rkhunter -c --enable all --disable none --rwo
+if [ "$ENABLE_BANNER" = "yes" ]; then
+    execute_with_status "Configure login banner" config_banner
+fi
+
+
+
+
+
+
+if [ "$ENABLE_RKHUNTER" = "yes" ]; then
+    echo "rkhunter Checkup (may take a few minutes)"
+    sudo rkhunter -c --enable all --disable none --rwo
+fi
+
+
+
 
 
 #-------------------------------------------------------------------------------------
@@ -584,20 +800,28 @@ printf "|%-31s|%-52s|\n" "-------------------------------" "--------------------
 printf "| %-29s | %-60s |\n" "Execution Duration" "$minutes min $seconds sec $milliseconds ms"
 printf "| %-29s | %-60s |\n" "Server Name" "$SERVER_NAME"
 printf "| %-29s | %-60s |\n" "Server IP Address" "$SERVER_IP"
-printf "| %-29s | %-60s |\n" "Password for $USERNAME_ADMINUSER" "$PASSWORD_ADMINUSER"
-printf "| %-29s | %-60s |\n" "GRUB Password" "$GRUB_PASSWORD"
-printf "| %-29s | %-60s |\n" "SSH Port" "$ssh_port"
-# Überprüfen, ob das Array Elemente enthält
-if [ ${#UFWSSH_IPS[@]} -gt 0 ]; then
-  # Ausgabe der Kopfzeile nur einmal
-  printf "| %-29s | %-60s |\n" "SSH allowed from" "${UFWSSH_IPS[0]}"
-  
-  # Starte die Schleife mit dem zweiten Element, da das erste bereits ausgegeben wurde
-  for i in "${UFWSSH_IPS[@]:1}"; do
-    printf "| %-29s | %-60s |\n" "" "$i"
-  done
-else
-  echo "Keine IP-Adressen definiert."
+if [ "$ENABLE_ADMINUSER" = "yes" ]; then
+    printf "| %-29s | %-60s |\n" "Password for $USERNAME_ADMINUSER" "$PASSWORD_ADMINUSER"
 fi
+if [ "$ENABLE_GRUB" = "yes" ]; then
+    printf "| %-29s | %-60s |\n" "GRUB Password" "$GRUB_PASSWORD"
+fi
+if [ "$ENABLE_SSHCONFIG" = "yes" ]; then
+    printf "| %-29s | %-60s |\n" "SSH Port" "$ssh_port"
+    # Überprüfen, ob das Array Elemente enthält
+    if [ ${#UFWSSH_IPS[@]} -gt 0 ]; then
+    # Ausgabe der Kopfzeile nur einmal
+    printf "| %-29s | %-60s |\n" "SSH allowed from" "${UFWSSH_IPS[0]}"
+    
+    # Starte die Schleife mit dem zweiten Element, da das erste bereits ausgegeben wurde
+    for i in "${UFWSSH_IPS[@]:1}"; do
+        printf "| %-29s | %-60s |\n" "" "$i"
+    done
+    else
+    echo "Keine IP-Adressen definiert."
+    fi
+fi
+
+
 
 printf "|%-31s|%-52s|\n" "-------------------------------" "--------------------------------------------------------------"

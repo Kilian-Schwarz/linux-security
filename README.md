@@ -1,3 +1,7 @@
+Sure, here is the updated README file for your Linux Security Script:
+
+---
+
 # Linux Security Script
 
 ## Overview
@@ -19,7 +23,7 @@ The script performs the following operations:
 12. **Set a secure banner for Postfix**: Configures Postfix with a secure SMTP banner.
 13. **Enable auditing tools and services**: Installs and configures auditd, acct, and sysstat for system auditing.
 14. **Apply other security configurations**: Applies various additional security settings to harden the system.
-15. **Set GRUB bootloader password**: Configures a password for GRUB bootloader to enhance boot security. **Note: This feature is currently not functioning.**
+15. **Set GRUB bootloader password**: Configures a password for GRUB bootloader to enhance boot security.
 
 ## Prerequisites
 - This script must be run as root.
@@ -55,4 +59,4 @@ The configuration file should include the following variables:
 - After running the script, it is recommended to reboot the server to apply all changes.
 
 ## Known Issues
-- **Set GRUB bootloader password (Function 15)**: This feature is currently not functioning. We are working on resolving the issue.
+- **Set GRUB bootloader password**: This feature is currently not functioning. We are working on resolving the issue.

@@ -45,12 +45,18 @@ if [ ! -f ./security.conf ]; then
     exit 1
 fi
 
-# Source the security configuration file
+# Laden der Konfigurationsdatei
 source ./security.conf
 
-# Check if necessary variables are set in the configuration file
+# Überprüfen, ob notwendige Variablen in der Konfigurationsdatei gesetzt sind
 if [ -z "$SECURITY_UFWSSH_IPS" ] || [ -z "$SECURITY_SSH_PORT" ] || [ -z "$SECURITY_USERNAME_ADMINUSER" ] || [ -z "$SECURITY_SSH_SSH_ADMINUSER_KEYS" ] || [ -z "$SECURITY_SSH_ADMIN_KEYS" ] || [ -z "$SECURITY_TIMEZONE" ]; then
     echo "Eine oder mehrere notwendige Variablen fehlen in der Konfigurationsdatei."
+    exit 1
+fi
+
+# Überprüfen, ob die Variablen für UFW-Regeln gesetzt sind
+if [ -z "$UFW_RULES" ]; then
+    echo "UFW_RULES Variablen fehlen in der Konfigurationsdatei."
     exit 1
 fi
 
@@ -59,6 +65,8 @@ if [ -z "$ENABLE_UFW" ] || [ -z "$ENABLE_ADMINUSER" ] || [ -z "$ENABLE_PASSWORDS
     echo "Eine oder mehrere Aktivierungsvariablen fehlen in der Konfigurationsdatei."
     exit 1
 fi
+
+
 
 # Extract variables from the configuration file
 IFS=',' read -r -a UFWSSH_IPS <<< "$SECURITY_UFWSSH_IPS"
@@ -188,19 +196,6 @@ restartpolicy() {
         echo "needrestart configuration file not found: $CONF_FILE"
     fi
 
-}
-
-# Function to configure UFW
-config_ufw() {
-    ufw --force reset
-
-    ufw default deny incoming
-    ufw default allow outgoing
-
-    for ip in "${UFWSSH_IPS[@]}"; do
-        ufw allow from $ip to any port $SSH_PORT
-    done
-    ufw --force enable
 }
 
 
@@ -441,6 +436,46 @@ set_grub_password() {
 set_timezone() {
     sudo timedatectl set-timezone "$TIMEZONE"
 }
+
+
+# Funktion zur Anwendung der UFW-Regeln
+apply_ufw_rules() {
+    if [ -n "$UFW_RULES" ]; then
+        IFS=' ' read -ra RULES <<< "$UFW_RULES"
+        for rule in "${RULES[@]}"; do
+            IFS=':' read -r ip port protocol <<< "$rule"
+            if [ -z "$protocol" ]; then
+                # Wenn kein Protokoll angegeben ist, sowohl TCP als auch UDP freigeben
+                ufw allow from "$ip" to any port "$port"
+            else
+                ufw allow from "$ip" to any port "$port" proto "$protocol"
+            fi
+        done
+    else
+        echo "Keine UFW Regeln definiert."
+    fi
+}
+
+# Beispiel-Konfigurationssektion für UFW
+config_ufw() {
+    ufw --force reset
+    ufw default deny incoming
+    ufw default allow outgoing
+
+    for ip in "${UFWSSH_IPS[@]}"; do
+        ufw allow from $ip to any port $SSH_PORT
+    done
+    
+    # Anwenden der zusätzlichen UFW-Regeln
+    apply_ufw_rules
+    
+    ufw --force enable
+}
+
+
+
+
+
 #-------------------------------------------------------------------------------------
 # --------------------------------------- MAIN ---------------------------------------
 #-------------------------------------------------------------------------------------

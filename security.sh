@@ -96,6 +96,11 @@ if [ ! -f ./security.conf ]; then
     echo "Die Konfigurationsdatei security.conf wurde nicht gefunden."
     exit 1
 fi
+# Überprüfen, ob die Variablen für UFW-Regeln gesetzt sind
+if [ -z "$SECURITY_UFWSSH_IPS" ]; then
+    echo "UFW_RULES Variablen fehlen in der Konfigurationsdatei."
+    exit 1
+fi
 
 # Überprüfen, ob notwendige Variablen in der Konfigurationsdatei gesetzt sind
 if [ -z "$SECURITY_UFWSSH_IPS" ] || [ -z "$SECURITY_SSH_PORT" ] || [ -z "$SECURITY_USERNAME_ADMINUSER" ] || [ -z "$SECURITY_SSH_SSH_ADMINUSER_KEYS" ] || [ -z "$SECURITY_SSH_ADMIN_KEYS" ] || [ -z "$SECURITY_TIMEZONE" ]; then
@@ -103,14 +108,8 @@ if [ -z "$SECURITY_UFWSSH_IPS" ] || [ -z "$SECURITY_SSH_PORT" ] || [ -z "$SECURI
     exit 1
 fi
 
-# Überprüfen, ob die Variablen für UFW-Regeln gesetzt sind
-if [ -z "$UFW_RULES" ]; then
-    echo "UFW_RULES Variablen fehlen in der Konfigurationsdatei."
-    exit 1
-fi
-
 # Check if module activation variables are set
-if [ -z "$ENABLE_UFW" ] || [ -z "$ENABLE_ADMINUSER" ] || [ -z "$ENABLE_PASSWORDSECURITY" ] || [ -z "$ENABLE_SSHKEYS" ] || [ -z "$ENABLE_SSHCONFIG" ] || [ -z "$ENABLE_FAIL2BAN" ] || [ -z "$ENABLE_CLAMAV" ] || [ -z "$ENABLE_AIDE" ] || [ -z "$ENABLE_RKHUNTER" ] || [ -z "$ENABLE_AUTOUPDATE" ] || [ -z "$ENABLE_POSTFIX" ] || [ -z "$ENABLE_AUDIT" ] || [ -z "$ENABLE_OTHERSECURE" ] || [ -z "$ENABLE_GRUB" ]; then
+if [ -z "$ENABLE_ADMINUSER" ] || [ -z "$ENABLE_PASSWORDSECURITY" ] || [ -z "$ENABLE_SSHKEYS" ] || [ -z "$ENABLE_SSHCONFIG" ] || [ -z "$ENABLE_FAIL2BAN" ] || [ -z "$ENABLE_CLAMAV" ] || [ -z "$ENABLE_AIDE" ] || [ -z "$ENABLE_RKHUNTER" ] || [ -z "$ENABLE_AUTOUPDATE" ] || [ -z "$ENABLE_POSTFIX" ] || [ -z "$ENABLE_AUDIT" ] || [ -z "$ENABLE_OTHERSECURE" ] || [ -z "$ENABLE_GRUB" ]; then
     echo "Eine oder mehrere Aktivierungsvariablen fehlen in der Konfigurationsdatei."
     exit 1
 fi

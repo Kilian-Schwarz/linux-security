@@ -492,7 +492,10 @@ apply_ufw_rules() {
         IFS=' ' read -ra RULES <<< "$UFW_RULES"
         for rule in "${RULES[@]}"; do
             IFS=':' read -r ip port protocol <<< "$rule"
-            if [ -z "$protocol" ]; then
+            if [ "$ip" == "0.0.0.0" ]; then
+                # Wenn die IP 0.0.0.0 ist, den Port freigeben
+                ufw allow "$port"
+            elif [ -z "$protocol" ]; then
                 # Wenn kein Protokoll angegeben ist, sowohl TCP als auch UDP freigeben
                 ufw allow from "$ip" to any port "$port"
             else

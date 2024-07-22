@@ -93,27 +93,55 @@ trap 'echo -e "\nProcess interrupted"; exit' INT
 
 # Check if the security configuration file exists
 if [ ! -f ./security.conf ]; then
-    echo "Die Konfigurationsdatei security.conf wurde nicht gefunden."
-    exit 1
-fi
-# Überprüfen, ob die Variablen für UFW-Regeln gesetzt sind
-if [ -z "$SECURITY_UFWSSH_IPS" ]; then
-    echo "UFW_RULES Variablen fehlen in der Konfigurationsdatei."
+    echo "The configuration file security.conf was not found."
     exit 1
 fi
 
-# Überprüfen, ob notwendige Variablen in der Konfigurationsdatei gesetzt sind
-if [ -z "$SECURITY_UFWSSH_IPS" ] || [ -z "$SECURITY_SSH_PORT" ] || [ -z "$SECURITY_USERNAME_ADMINUSER" ] || [ -z "$SECURITY_SSH_SSH_ADMINUSER_KEYS" ] || [ -z "$SECURITY_SSH_ADMIN_KEYS" ] || [ -z "$SECURITY_TIMEZONE" ]; then
-    echo "Eine oder mehrere notwendige Variablen fehlen in der Konfigurationsdatei."
+# Source the configuration file
+source ./security.conf
+
+# Check if module activation variables are set and have values "yes" or "no"
+MODULES=(ENABLE_UFW ENABLE_ADMINUSER ENABLE_PASSWORDSECURITY ENABLE_SSHKEYS ENABLE_SSHCONFIG ENABLE_FAIL2BAN ENABLE_CLAMAV ENABLE_AIDE ENABLE_RKHUNTER ENABLE_AUTOUPDATE ENABLE_POSTFIX ENABLE_AUDIT ENABLE_OTHERSECURE ENABLE_BANNER ENABLE_GRUB)
+for module in "${MODULES[@]}"; do
+    if [ -z "${!module}" ] || { [ "${!module}" != "yes" ] && [ "${!module}" != "no" ]; }; then
+        echo "Module activation variable $module is missing or not set to 'yes' or 'no' in the configuration file."
+        exit 1
+    fi
+done
+
+# Check necessary variables based on module activation
+if [ "$ENABLE_ADMINUSER" = "yes" ] && [ -z "$SECURITY_USERNAME_ADMINUSER" ]; then
+    echo "SECURITY_USERNAME_ADMINUSER is missing in the configuration file."
     exit 1
 fi
 
-# Check if module activation variables are set
-if [ -z "$ENABLE_ADMINUSER" ] || [ -z "$ENABLE_PASSWORDSECURITY" ] || [ -z "$ENABLE_SSHKEYS" ] || [ -z "$ENABLE_SSHCONFIG" ] || [ -z "$ENABLE_FAIL2BAN" ] || [ -z "$ENABLE_CLAMAV" ] || [ -z "$ENABLE_AIDE" ] || [ -z "$ENABLE_RKHUNTER" ] || [ -z "$ENABLE_AUTOUPDATE" ] || [ -z "$ENABLE_POSTFIX" ] || [ -z "$ENABLE_AUDIT" ] || [ -z "$ENABLE_OTHERSECURE" ] || [ -z "$ENABLE_GRUB" ]; then
-    echo "Eine oder mehrere Aktivierungsvariablen fehlen in der Konfigurationsdatei."
+if [ -z "$SECURITY_TIMEZONE" ]; then
+    echo "SECURITY_TIMEZONE is missing in the configuration file."
     exit 1
 fi
 
+if [ "$ENABLE_SSHCONFIG" = "yes" ] && [ -z "$SECURITY_SSH_PORT" ]; then
+    echo "SECURITY_SSH_PORT is missing in the configuration file."
+    exit 1
+fi
+
+if [ "$ENABLE_SSHKEYS" = "yes" ]; then
+    if [ -z "$SECURITY_SSH_ADMIN_KEYS" ]; then
+        echo "SECURITY_SSH_ADMIN_KEYS is missing in the configuration file."
+        exit 1
+    fi
+    if [ "$ENABLE_ADMINUSER" = "yes" ] && [ -z "$SECURITY_SSH_SSH_ADMINUSER_KEYS" ]; then
+        echo "SECURITY_SSH_SSH_ADMINUSER_KEYS is missing in the configuration file."
+        exit 1
+    fi
+fi
+
+if [ "$ENABLE_UFW" = "yes" ] && [ -z "$SECURITY_UFWSSH_IPS" ]; then
+    echo "SECURITY_UFWSSH_IPS is missing in the configuration file."
+    exit 1
+fi
+
+echo "Configuration check passed."
 
 
 # Extract variables from the configuration file
